@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
-# Tur-Chess v0.1
+# PGN Parser v0.1
 #===================
 # November 25, 2020
-# Alejandro G. Bedoya nezumi@teosistemas.com)
+# Alejandro G. Bedoya nezumi@teosistemas.com
 
 
 # CONFIGURATION SECTION
@@ -12,8 +12,6 @@
 
 # TO DO:
 #=======
-# Use TERM:ANSIcolors
-# Use Ncurses.
 # Check for valid castling, passant and on check
 
 
