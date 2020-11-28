@@ -34,6 +34,7 @@ my $File= $ARGV[1];
 
 open(my $FH, $File) or die "ERR: $!($File)\n";
 if ($Proc eq "search" && $ARGV[2]) { &Search($ARGV[2]); }
+if ($Proc eq "tofen") { &ToFen(); }
 close($FH);
 
 
@@ -293,12 +294,9 @@ sub Move {
 	substr($Move, 0, 1)= "";
 	substr($Move, length($Move)-2, 2)= "";
 	my $Deta= $Move;
-	##my $Whon= $Board{$To};
-
 
 	#==> MOVE IT!
 	my @From= WhereIs($Piece, $Deta);
-
 	my @Psb;
 	foreach my $Fro (@From) {
 		if (&CanMove($Fro, $To)==1) { push @Psb, $Fro; }
@@ -310,7 +308,7 @@ sub Move {
 		}
 
 	print "ERR: Couldn't make move ($OriMove)!\n";
-	print "DEBUG: Active=$Board{FLAG}{active} Piece=$Piece Deta=$Deta Captu=$Captu To=$To Promo=$Promo\n";
+	print "DBG: Active=$Board{FLAG}{active} Piece=$Piece Deta=$Deta Captu=$Captu To=$To Promo=$Promo Psb=".scalar(@Psb)."\n";
 	exit 666;
 	}
 
@@ -352,7 +350,7 @@ sub BoardMove {
 		if ($From=~ /7$/) { $Board{FLAG}{passant}= $X."6"; }
 		}
 
-	#REM: Set color turn...
+	#REM: Toggle color turn...
 	$Board{FLAG}{active}= $Board{FLAG}{active} eq "w" ? "b" : "w";
 	return;
 	}
