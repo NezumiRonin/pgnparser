@@ -16,11 +16,15 @@
 
 
 
+
 ########
 # MAIN #
 ########
 use strict;
-my %Board; 
+my $Lapse= time;
+my %Board;
+my $GameNum;
+my @GameLin;
 my %Allow= AllowInit();
 
 
@@ -31,6 +35,12 @@ my $File= $ARGV[1];
 open(my $FH, $File) or die "ERR: $!($File)\n";
 if ($Proc eq "search" && $ARGV[2]) { &Search($ARGV[2]); }
 close($FH);
+
+
+$Lapse= time-$Lapse;
+my $Persec= $GameNum==0 ? 0 : sprintf("%.1f", $GameNum/$Lapse);
+
+print "$GameNum games processed in $Lapse\s ($Persec gps)";
 exit;
 
 
@@ -62,16 +72,13 @@ my $TuroChamp= qq|
 
 sub Search {
 	my ($Strpos)= @_;
-	my $GameNum;
 	while(1) {
 		my %Game= &NextGame();
 		if ($Game{MOVES} eq "") { last; }
 		$GameNum++;
-		print "==> GAME #$GameNum\n";
-		#&PrintGame(%Game);
+		#print "==> GAME #$GameNum\n";
 		&Play($Game{MOVES});
-		print "\n\n\n";
-		#chomp(my $key = <STDIN>);
+		#print "\n\n\n";
 		}
 	}
 
@@ -132,8 +139,15 @@ sub AllowInit {
 	my %Allow;
 	# Direction and Distance
 	# 0, 45, 90, 180, etc...
-	$Allow{P}= ['0,+1', '0,+2', '-1,+1', '+1,+1'];
+
+	#REM: Pawn special moves: 1 square, 2 square, right capture, left capture.
+	$Allow{P}= ['0,+1', '0,+2', '+1,+1', '-1,+1'];
 	$Allow{p}= ['0,-1', '0,-2', '-1,-1', '+1,-1'];
+
+	#REM: Pawn extra "Allow" added later if possible...
+	#$Allow{P}= ['0,+1'];
+	#$Allow{p}= ['0,-1'];
+
 	$Allow{N}= ['+1,+2', '+2,+1', '+2,-1', '+1,-2', '-1,-2', '-2,-1', '-2,+1', '-1,+2'];
 
 	foreach my $J (1..7) {
@@ -212,21 +226,21 @@ sub ParseMoves {
 sub Play {
 	my ($Moves)= @_;
 
-	my @Board= BoardInit();
-	BoardShow();
+	my @Board= &BoardInit();
+	#BoardShow();
 	
-	my @Game= ParseMoves($Moves);
+	my @Game= &ParseMoves($Moves);
 
 	my $Count=0;
 	for my $Mov (@Game) {
 		$Count++;
 		my ($W, $B)= split(" ", $Mov);
-		print "$Count\.\t$W\t$B\n";
+		#print "$Count\.\t$W\t$B\n";
 		&Move($W);
-		&BoardShow();
+		#&BoardShow();
 		if ($B eq "") { last; }
 		&Move($B);
-		&BoardShow();
+		#&BoardShow();
 		}
 	}
 
@@ -234,6 +248,16 @@ sub Play {
 sub Move {
 	my ($OriMove)= @_;
 	my $Move= $OriMove;
+
+	#==> Special Sigils...
+	my $Captu= 0;
+	my $Check= 0;
+	my $Cmate= 0;
+	my $Promo= 0;
+	if ($Move=~ /x/) { $Captu++; $Move=~ s/x//; }
+	if ($Move=~ /\+$/) { $Check++; $Move=~ s/\+$//; }
+	if ($Move=~ /\#$/) { $Cmate++; $Move=~ s/\#$//; }
+	if ($Move=~ /=([QRBN])/) { $Promo= $1; $Move=~ s/=.//; }
 
 	#==> CASTLING:
 	if ($Move eq "O-O") {
@@ -256,16 +280,6 @@ sub Move {
 	#==> is Pawn empty?
 	if ($Move=~ /^[a-h]/) { $Move= 'P'.$Move; }
 
-	#==> Special Sigils...
-	my $Captu= 0;
-	my $Check= 0;
-	my $Cmate= 0;
-	my $Promo= 0;
-	if ($Move=~ /x/) { $Captu++; $Move=~ s/x//; }
-	if ($Move=~ /\+$/) { $Check++; $Move=~ s/\+$//; }
-	if ($Move=~ /\#$/) { $Cmate++; $Move=~ s/\#$//; }
-	if ($Move=~ /=([QRBN])/) { $Promo= $1; $Move=~ s/=.//; print "PROMO $Promo!\n";}
-
 	#==> Lowercase black pieces...
 	if ($Board{FLAG}{active} eq "b") {
 		my $Chng=lc(substr($Move, 0, 1));
@@ -287,27 +301,7 @@ sub Move {
 
 	my @Psb;
 	foreach my $Fro (@From) {
-		my @Allowable= $Piece eq "p" ? @{$Allow{'p'}} : @{$Allow{uc($Piece)}};
-		if (uc($Piece) eq "P") {
-			#if ($Board{$To} eq "") {
-			if ($Board{$To} eq "" && $To ne $Board{FLAG}{passant}) {
-				#REM: Disable capture.
-				pop @Allowable;
-				pop @Allowable;
-				} else {
-				#REM: Disable foward, must capture
-				#shift @Allowable;
-				#shift @Allowable;
-				}
-			}
-		foreach my $Try (@Allowable) {
-			my ($Ax, $Ay)= split(",", $Try);
-			my $Tto= ToCoords($Fro, $Ax, $Ay);
-			#print "ALLOW: $Fro($Try) -> $Tto\n";
-			if ($Tto eq $To && scalar(CheckPath($Fro, $To))==0) {
-				push @Psb, $Fro;
-				}
-			};
+		if (&CanMove($Fro, $To)==1) { push @Psb, $Fro; }
 		}
 	if (scalar @Psb==1) {
 		BoardMove($Psb[0], $To);
@@ -321,7 +315,18 @@ sub Move {
 	}
 
 
+sub Enpass {
+	my $Square= $Board{FLAG}{passant};
+	if ($Square eq "-") { return ""; }
+	my $X= substr($Square, 0, 1);
+	if ($Square=~ /3$/) { return $X."4"; }
+	if ($Square=~ /6$/) { return $X."5"; }
+	return ""
+	}
+
+
 sub BoardMove {
+	#REM: Makes move of pieces in the board and adjust flags.
 	my ($From, $To)= @_;
 
 	my $Piece= $Board{$From};
@@ -336,13 +341,10 @@ sub BoardMove {
 		if ($To eq "c8") { $Board{d8}= delete $Board{a8}; $Board{FLAG}{castling}=~ s/q//;}
 		}
 
-	#REM: Passant remove captured pawn
+	#REM: Passant move...
 	if (uc($Piece) eq "P" && $To eq $Board{FLAG}{passant}) {
-		my $X= substr($To, 0, 1);
-		if ($To=~ /3$/) { delete $Board{$X."4"}; }
-		if ($To=~ /6$/) { delete $Board{$X."5"}; }
+		delete $Board{&Enpass()};
 		}
-
 	$Board{FLAG}{passant}="-";
 	if (uc($Piece) eq "P" && $Steps==2) {
 		my $X= substr($From, 0, 1);
@@ -350,6 +352,7 @@ sub BoardMove {
 		if ($From=~ /7$/) { $Board{FLAG}{passant}= $X."6"; }
 		}
 
+	#REM: Set color turn...
 	$Board{FLAG}{active}= $Board{FLAG}{active} eq "w" ? "b" : "w";
 	return;
 	}
@@ -368,15 +371,16 @@ sub WhereIs {
 
 
 sub ToCoords {
-	my ($Square, $Px, $Py)= @_;
-	my ($X, $Y)= split("", $Square);
-	$X=~ tr/abcdefgh/12345678/;
-	$X+= $Px;
-	$Y+= $Py;
-	if ($X<1 || $X>8) { return undef; }
-	if ($Y<1 || $Y>8) { return undef; }
-	$X=~ tr/12345678/abcdefgh/;
-	$Square= $X.$Y;
+	my ($Square, $Coords)= @_;
+	my ($Fx, $Fy)= split("", $Square);
+	my ($Tx, $Ty)= split(",", $Coords);
+	$Fx=~ tr/abcdefgh/12345678/;
+	$Fx+= $Tx;
+	$Fy+= $Ty;
+	if ($Fx<1 || $Fx>8) { return undef; }
+	if ($Fy<1 || $Fy>8) { return undef; }
+	$Fx=~ tr/12345678/abcdefgh/;
+	$Square= $Fx.$Fy;
 	return $Square;	
 	}
 
@@ -420,11 +424,89 @@ sub CheckPath {
 		if ($Dx>0) { $Jx--;}
 		if ($Dy<0) { $Jy++;}
 		if ($Dy>0) { $Jy--;}
-		my $Pos= ToCoords($From, $Jx, $Jy);
+		my $Pos= ToCoords($From, "$Jx,$Jy");
 		my $Pie= $Board{$Pos};
 		if ($Pie ne "") { push @Path, "$Pie$Pos"; }
 		}	
 	return @Path;
 	}
+
+
+sub WhatColor {
+	my ($Piece)= @_;
+	if ($Piece=~ /[KQRBNP]/) { return "w"; }
+	if ($Piece=~ /[kqrbnp]/) { return "b"; }
+	return "";
+	}
+
+
+sub Attacking {
+	my ($Square)= @_;
+	my $Piece= $Board{$Square};
+	my @Enemies= qw(K Q R B N P);
+
+	my @AttFrom= ();
+	if (&WhatColor($Piece) eq "w") { @Enemies = map{lc $_} @Enemies; }
+	#print "IsAttacked: $Piece $Square @Enemies\n";
+	foreach my $Ene (@Enemies) {
+		my @From= &WhereIs($Ene);
+		foreach my $Fro (@From) {
+			if (&CanMove($Fro, $Square, 1)==1) { push @AttFrom, $Fro; } 
+			}
+		}
+	return @AttFrom;
+	}
+
+
+sub CanMove {
+	my ($From, $To, $Nc)= @_;
+	my $Piece= $Board{$From};
+
+	#REM: Load legal moves for the piece.
+	my @Moves= $Piece eq "p" ? @{$Allow{'p'}} : @{$Allow{uc($Piece)}};
+
+	#REM: Adjust especial moves for pawn
+	if (uc($Piece) eq "P") {
+		my $Step1= &ToCoords($From, $Moves[0]);
+		my $Step2= &ToCoords($From, $Moves[1]);
+		my $CaptR= &ToCoords($From, $Moves[2]);
+		my $CaptL= &ToCoords($From, $Moves[3]);
+		if ($Board{$Step1} ne "") { $Moves[0]=""; $Moves[1]=""; }
+		if ($Board{$Step2} ne "") { $Moves[1]=""; }
+		if ($Board{$CaptR} eq "" && $CaptR ne $Board{FLAG}{passant}) { $Moves[2]=""; }
+		if ($Board{$CaptL} eq "" && $CaptL ne $Board{FLAG}{passant}) { $Moves[3]=""; }
+		}
+
+	#REM: Try all posible moves.
+	foreach my $Try (@Moves) {
+		if( $Try eq "") { next; }
+		my $Tto= &ToCoords($From, $Try);
+		if ($Tto eq "") { next; } #Out of board.
+		if (&WhatColor($Piece) eq &WhatColor($Board{$Tto})) { next; } #Square ocuppied by partner.
+		#DBG: print "Posible: $Piece $From($Try) -> $Tto\n" if $Nc==0;
+		if ($Tto eq $To && scalar(CheckPath($From, $To))==0) {
+			my $Check= 0;
+			if ($Nc==0) {
+				my $King= "K";
+				if (&WhatColor($Piece) eq "b") { $King= "k";}
+				my %Save= %Board;
+				$Board{$To}= delete $Board{$From};
+				if (uc($Piece) eq "P" && $To eq $Board{FLAG}{passant}) {
+					delete %Board{&Enpass()};
+					}
+				$Check= scalar (&Attacking(&WhereIs($King)));
+				$Board{$From}= delete $Board{$To};
+				%Board= %Save;
+				}
+			if ($Check==0)	{ return 1; }
+			}
+		};
+	return 0;
+	}
+
+
+
+
+
 
 
