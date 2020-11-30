@@ -21,16 +21,16 @@ It contains a set of tools to process the games in a PGN file.
 #### justplay
 Just reads and silently plays games, good for testing PGN file and benchmark.
 #### search
-Searchs a pattern in the game position.
+Searchs a pattern in the game position. Upper/Lower case color applies. Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed.
 
-* **w**	Evaluate only *w*hite or *b*lack active move, must be first.
+
+* **w**	Evaluate only *w*hite or *b*lack active move, before the actual move. Must be first.
 * **Qd1** Queen in 'd1'
 * **Qma4** Queen can *m*ove/capture to 'a4', valid move with free path.
 * **Qxd8** Queen can *x*capture to 'd8', destination square must be with enemy piece.
 * **Qjh5** Queen can *j*ump to 'h5', ignore other pieces in path.
 * **.a8**  Any piece on 'a8' (To be done)
 * **!h8**  No piece on 'h8' (To be done)
-Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed.
 
 Example for 'King Usurper', white king on black throne:
 ```shell
