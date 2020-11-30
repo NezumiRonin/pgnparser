@@ -1,5 +1,6 @@
 # PGN Parser
 A simple PGN Parser with tools. **MADE WITH PERL!**
+![ScreenShot](https://raw.githubusercontent.com/NezumiRonin/pgnparser/main/screenshot.png)
 
 ## Objetive
 **PGN Parser** is a simple PGN parser made with Perl.
@@ -17,6 +18,8 @@ It contains a set of tools to process the games in a PGN file.
 ```
 
 ### Commands
+#### justplay
+Just reads and silently plays games, good for benchmark.
 #### search
 Searchs a pattern in the game position.
 
