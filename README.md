@@ -2,22 +2,22 @@
 A simple PGN Parser with tools. **MADE WITH PERL!**
 ![ScreenShot](https://raw.githubusercontent.com/NezumiRonin/pgnparser/main/screenshot.png)
 
-## Objetive
+## OBJECTIVE
 **PGN Parser** is a simple PGN parser made with Perl.
 It contains a set of tools to process the games in a PGN file.
 
-## Install
+## INSTALL
 * Just copy the perl script to your Linux computer.
 * If you still somehow use Windows, you can get [Linux Mint](https://linuxmint.com/).
 * If you insist in using Windows, well... you can install [Strawberry Perl](http://strawberryperl.com/).
 	
 
-## Usage
+## USAGE
 ```shell
 ./pgnparser.pl COMMAND file [options]
 ```
 
-### Commands
+### COMMANDS
 #### justplay
 Just reads and silently plays games, good for testing PGN file and benchmark.
 #### search
