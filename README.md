@@ -19,9 +19,9 @@ It contains a set of tools to process the games in a PGN file.
 
 ### COMMANDS
 #### justplay
-Just reads and silently plays games, good for testing PGN file and benchmark.
+Just reads and silently plays the games, good for testing PGN file and benchmark.
 #### search
-Searchs a pattern in the game position. Upper/Lower case color applies. Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed.
+Searchs a pattern in the game position. Upper/Lower case color applies. Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed. In Windows, search pattern must go betwwen double quotes.
 
 
 * **w**	Evaluate only *w*hite or *b*lack active move, before the actual move. Must be first.
@@ -34,12 +34,12 @@ Searchs a pattern in the game position. Upper/Lower case color applies. Think "s
 
 Example for 'King Usurper', white king on black throne:
 ```shell
-./pgnparser.pl search file.pgn 'w Ke8'
+./pgnparser.pl search file.pgn "w Ke8"
 ```
 
 Example for 'Greek gift sacrifice', white turn:
 ```shell
-./pgnparser.pl search file.pgn 'w kg8 rf8 Bxh7 Nmg5 Qjh5'
+./pgnparser.pl search file.pgn "w kg8 rf8 Bxh7 Nmg5 Qjh5"
 ```
 
 
