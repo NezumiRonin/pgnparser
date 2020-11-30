@@ -8,8 +8,8 @@ It contains a set of tools to process the games in a PGN file.
 
 ## Install
 * Just copy the perl script to your Linux computer.
-* If you use somehow still use Windows, you can get [Linux Mint](https://linuxmint.com/).
-* If you insist in using Windows, you can install [Strawberry Perl](http://strawberryperl.com/).
+* If you still somehow use Windows, you can get [Linux Mint](https://linuxmint.com/).
+* If you insist in using Windows, well... you can install [Strawberry Perl](http://strawberryperl.com/).
 	
 
 ## Usage
@@ -19,7 +19,7 @@ It contains a set of tools to process the games in a PGN file.
 
 ### Commands
 #### justplay
-Just reads and silently plays games, good for benchmark.
+Just reads and silently plays games, good for testing PGN file and benchmark.
 #### search
 Searchs a pattern in the game position.
 
@@ -50,6 +50,7 @@ Example for 'Greek gift sacrifice', white turn:
 * Code optimization.
 * Nice option parser.
 * Make GIF of the game.
+* Patterns with OR operator.
 
 
 ## NOTES
