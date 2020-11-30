@@ -21,7 +21,7 @@ It contains a set of tools to process the games in a PGN file.
 #### justplay
 Just reads and silently plays the games, good for testing PGN file and benchmark.
 #### search
-Searchs a pattern in the game position. Upper/Lower case color applies. Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed. In Windows, search pattern must go betwwen double quotes.
+Searchs a pattern in the game position. Upper/Lower case color applies. Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed. In Windows, search pattern must go between double quotes.
 
 
 * **w**	Evaluate only *w*hite or *b*lack active move, before the actual move. Must be first.
@@ -54,7 +54,7 @@ Example for 'Greek gift sacrifice', white turn:
 
 
 ## NOTES
-* Made in week coding sprint, around 40 hours (because pandemic).
+* Made in a week of coding sprint, around 40 hours (because pandemic).
 * Nov 28, 2020: ./pgnparser.pl justplay smyslov_2627.pgn -> 2627 games processed in 75s (35.0 gps)
 * Nov 29, 2020: ./pgnparser.pl justplay smyslov_2627.pgn -> 2627 games processed in 68s (38.6 gps)
 
