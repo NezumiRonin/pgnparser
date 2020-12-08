@@ -1,5 +1,6 @@
 ; Some test games for pgnparser.pl
 ; Pedantic format:
+; * Tag Date must be "ISO 8601" format: YYYY-MM-DD
 ; * Number moves must follow point and space.
 ; * Line sequence no more than 80 characters.
 ; * Nice to start lines with number.

@@ -7,8 +7,7 @@
 
 # CONFIGURATION SECTION
 #=======================
-my $Pedantic= 1;
-
+my $Pedantic= 0;
 
 
 ########
@@ -25,6 +24,16 @@ my $FH;
 my %GAME;
 my %BOARD;
 my %Allow= AllowInit();
+
+
+#TEST:
+#&BoardInit();
+#$BOARD{e2}= "P";
+#$BOARD{d3}= "p";
+#my $Ret= &CanMove2("e2", "f3");
+#print "RET: $Ret\n";
+#exit;
+
 
 
 #REM: PROCESS...
@@ -99,13 +108,15 @@ sub NextGame {
 			}
 
 		if (length($Line)<3) {
-			if ($GAME{MOVES}) { last; }
+			if ($GAME{PRIME}) { last; }
 			next;
 			}
 		$GAME{PRIME}.= $Line." ";
-		&ParsePrime();
 		}
 	if (eof($FH)) { close($FH); }
+	&ParsePrime();
+	#print "PRIME: $GAME{PRIME}\n\n";
+	#exit;
 	return;
 	}
 
@@ -114,39 +125,55 @@ sub ParsePrime {
 	my $Pgn= $GAME{PRIME};
 	
 	#REM: Remove balanced pesky comentaries...
-	#$Pgn=~ s/\{.*\}/ /g;
-	my @Balance;
-	my $Pos1;
-	my $Pos2;
-	for (my $J=0; $J<length($Pgn); $J++) {
-		my $Char= substr($Pgn, $J, 1);
-		if ($Char=~ /[\{\(]/) {
-			if (scalar(@Balance)==0) { $Pos1= $J; }
-			push @Balance, $Char;
-			}
-		if ($Char=~ /[\}\)]/) {
-			if (scalar(@Balance)==1) {
-				$Pos2= $J+1;
-				substr($Pgn, $Pos1, $Pos2-$Pos1) = " " x ($Pos2-$Pos1);
+	if ($Pedantic) {
+		$Pgn=~ s/{.*}/ /g;
+		} else {
+		my @Balance;
+		my $Pos1;
+		my $Pos2;
+		for (my $J=0; $J<length($Pgn); $J++) {
+			my $Char= substr($Pgn, $J, 1);
+			if ($Char=~ /[\{\(]/) {
+				if (scalar(@Balance)==0) { $Pos1= $J; }
+				push @Balance, $Char;
 				}
-			pop @Balance
+			if ($Char=~ /[\}\)]/) {
+				if (scalar(@Balance)==1) {
+					$Pos2= $J+1;
+					substr($Pgn, $Pos1, $Pos2-$Pos1) = " " x ($Pos2-$Pos1);
+					}
+				pop @Balance
+				}
 			}
+		$Pgn=~ s/\d+\.\.\./ /g; #Remove elipsis...
+		$Pgn=~ s/\$\d+/ /g; #I dont't know what $n means...	
 		}
 
-	$Pgn=~ s/\$\d+/ /g; #I dont't know what $n means...	
-	$Pgn=~ s/\d+\.\.\./ /g; #Remove elipsis...
+	
+	#REM: Final Cleaning...
 	$Pgn=~ s/\./ /g;
 	$Pgn=~ s/\s+/ /g;
-	$GAME{MOVES}= $Pgn;
 
+
+	#REM: Last check...
+	#if ($Pgn=~ /[\(\)\{\}]/i) {
+	#	print "ERR: Moves not valid!\n";
+	#	print "***  $GAME{PRIME}\n";
+	#	print "***  $Pgn\n";
+	#	exit 666;
+	#	} 
+
+
+
+	$GAME{MOVES}= $Pgn;
 	my @Moves;
 	my @Parts= split(" ", $Pgn);
 	for (my $J; $J<@Parts; $J+=3) {
 		my $Wht= $Parts[$J+1];
 		my $Blk= $Parts[$J+2];
 		
-		if ($Wht=~ /^[0-9]/) {$Wht=""; }
-		if ($Blk=~ /^[0-9]/) {$Blk=""; }
+		if ($Wht=~ /^[0-9*]/) {$Wht=""; }
+		if ($Blk=~ /^[0-9*]/) {$Blk=""; }
 		if ($Wht eq "" && $Blk eq "") { last; }
 		push @Moves, "$Wht $Blk";
 		}
@@ -205,30 +232,25 @@ sub Play {
 	for my $Mov (@{$GAME{ARRAY}}) {
 		$Count++;
 		my ($Wht, $Blk)= split(" ", $Mov);
-		&Move($Wht);
+		&Move2($Wht);
 		if ($Blk eq "") { last; }
-		&Move($Blk);
+		&Move2($Blk);
 		}
 	return;
 	}
 
 
-sub Move {
+sub xxxMove {
 	my ($OriMove)= @_;
 	my $Move= $OriMove;
 
 	#==> Special Sigils...
-	$Move=~ s/\!//g;
-	$Move=~ s/\?//g;
-	my $Captu= 0;
-	my $Check= 0;
-	my $Cmate= 0;
 	my $Promo= 0;
-	if ($Move=~ /x/) { $Captu++; $Move=~ s/x//; }
-	if ($Move=~ /\+$/) { $Check++; $Move=~ s/\+$//; }
-	if ($Move=~ /\#$/) { $Cmate++; $Move=~ s/\#$//; }
+	my $Captu= $Move=~ /x/ ? 1 : 0;
+	my $Check= $Move=~ /\+$/ ? 1 : 0;
+	my $Cmate= $Move=~ /\#$/ ? 1 : 0;
 	if ($Move=~ /=([QRBN])/) { $Promo= $1; $Move=~ s/=.//; }
-	
+	$Move=~ s/[x\+\#\!\?]//g;
 
 	#==> CASTLING:
 	if ($Move eq "O-O") {
@@ -266,7 +288,7 @@ sub Move {
 	my $Deta= $Move;
 
 	#==> MOVE IT!
-	my @From= WhereIs($Piece, $Deta);
+	my @From= &WhereIs($Piece, $Deta);
 	my @Psb;
 	foreach my $Fro (@From) {
 		if (&CanMove($Fro, $To)==1) { push @Psb, $Fro; }
@@ -277,11 +299,85 @@ sub Move {
 		return;
 		}
 
-	print "ERR: Couldn't make move ($OriMove)!\n";
+	print "ERR: Couldn't make move! ($BOARD{FLAG}{fullmove}";
+
+	if ($BOARD{FLAG}{active} eq "w") { print " $Move ...)\n" }
+		else { print " ... $Move)\n" }
+
+
 	print "DBG: Active=$BOARD{FLAG}{active} Piece=$Piece Deta=$Deta Captu=$Captu To=$To Promo=$Promo Psb=".scalar(@Psb)."\n";
 	&ShowData();
 	exit 666;
 	}
+
+
+sub Move2 {
+	my ($OriMove)= @_;
+	my $Move= $OriMove;
+
+	#==> Special Sigils...
+	my $Promo= 0;
+	my $Captu= $Move=~ /x/ ? 1 : 0;
+	my $Check= $Move=~ /\+$/ ? 1 : 0;
+	my $Cmate= $Move=~ /\#$/ ? 1 : 0;
+	if ($Move=~ /=([QRBN])/) { $Promo= $1; $Move=~ s/=.//; }
+	$Move=~ s/[x\+\#\!\?]//g;
+
+	#==> CASTLING:
+	if ($Move eq "O-O") {
+		if ($BOARD{FLAG}{active} eq "w") {
+			BoardMove("e1", "g1"); return;
+			} else {
+			BoardMove("e8", "g8"); return;
+			}
+		}
+	if ($Move eq "O-O-O") {
+		if ($BOARD{FLAG}{active} eq "w") {
+			BoardMove("e1", "c1");
+			return;
+			} else {
+			BoardMove("e8", "c8");
+			return;
+			}
+		}
+
+	#==> is Pawn empty?
+	if ($Move=~ /^[a-h]/) { $Move= 'P'.$Move; }
+
+	#==> Lowercase black pieces...
+	if ($BOARD{FLAG}{active} eq "b") {
+		my $Chng=lc(substr($Move, 0, 1));
+		$Move= $Chng.substr($Move, 1);
+		$Promo= lc($Promo);
+		}
+
+	#==> Move structure...
+	my $Piece= substr($Move, 0, 1);
+	my $To= substr($Move, length($Move)-2, 2);
+	substr($Move, 0, 1)= "";
+	substr($Move, length($Move)-2, 2)= "";
+	my $Deta= $Move;
+
+	#==> MOVE IT!
+	my @From= &WhereIs($Piece, $Deta);
+	my @Psb;
+	foreach my $Fro (sort @From) {
+		if (&CanMove2($Fro, $To)==1) { push @Psb, $Fro; }
+		}
+	if (scalar @Psb==1) {
+		BoardMove($Psb[0], $To);
+		if ($Promo) { $BOARD{$To}= $Promo; }
+		return;
+		}
+
+	print "ERR: Couldn't make move! ($BOARD{FLAG}{fullmove}. ";
+	if ($BOARD{FLAG}{active} eq "w") { print "$OriMove ...)\n" }
+		else { print "... $OriMove)\n" }
+	print "DBG: Active=$BOARD{FLAG}{active} Piece=$Piece Deta=$Deta Captu=$Captu To=$To Promo=$Promo Psb=".scalar(@Psb)."\n";
+	&ShowData();
+	exit 666;
+	}
+
 
 
 sub Enpass {
@@ -378,6 +474,15 @@ sub CheckPath {
 	}
 
 
+
+sub IsFoe {
+	my ($Piece, $Sqr)= @_;
+	if ($BOARD{$Sqr} eq "") { return 0; }
+	if (&WhatColor($Piece) ne &WhatColor($BOARD{$Sqr})) { return 1; }
+	return -1; #Partner.
+	}
+
+
 sub Attacking {
 	my ($Square)= @_;
 	my $Piece= $BOARD{$Square};
@@ -396,7 +501,7 @@ sub Attacking {
 	}
 
 
-sub CanMove {
+sub xxxCanMove {
 	my ($From, $To, $Nc, $Jmp)= @_;
 	my $Piece= $BOARD{$From};
 
@@ -420,7 +525,8 @@ sub CanMove {
 		if( $Try eq "") { next; }
 		my $Tto= &ToCoords($From, $Try);
 		if ($Tto eq "") { next; } #Out of board.
-		if (&WhatColor($Piece) eq &WhatColor($BOARD{$Tto})) { next; } #Square ocuppied by partner.
+		#my $Color= &WhatColor($Piece);
+		if ($BOARD{$Tto} ne "" && &WhatColor($Piece) eq &WhatColor($BOARD{$Tto})) { next; } #Square ocuppied by partner.
 		#DBG: print "Posible: $Piece $From($Try) -> $Tto\n" if $Nc==0;
 		if ($Tto eq $To && ($Jmp==1 || scalar(CheckPath($From, $To))==0)) {
 			my $Check= 0;
@@ -439,6 +545,143 @@ sub CanMove {
 			if ($Check==0)	{ return 1; }
 			}
 		};
+	return 0;
+	}
+
+
+sub CanMove2 {
+	my ($From, $To, $Jmp)= @_;
+
+	my $Piece= $BOARD{$From};
+	my $Pieto= $BOARD{$To};
+	my $PieUC= uc($Piece);
+
+	#REM: Square TO must not be ocuppied by same color...
+	if ($Pieto ne "" && $Jmp==0 && &WhatColor($Piece) eq &WhatColor($Pieto)) { return 0; }
+
+	my ($Fx, $Fy)= split("", $From);
+	my ($Tx, $Ty)= split("", $To);
+	$Fx=~ tr/abcdefgh/12345678/;
+	$Tx=~ tr/abcdefgh/12345678/;
+
+	my $X= $Tx-$Fx;
+	my $Y= $Ty-$Fy;
+	my $Steps= ($X**2)+($Y**2);
+
+	#REM: It's a knight...
+	if ($PieUC eq "N") {
+		if ($Steps==5) { goto FINAL; }
+			else { return 0; }
+		}
+
+
+	#REM: Whatever else...
+	if ($X!=0 && $Y!=0 && abs($X)!=abs($Y)) { return 0; }
+	if ($X==0 || $Y==0) {
+		if ($PieUC eq "B") { return 0; }
+		$Steps= abs($X+$Y);
+		}
+	if (abs($X)==abs($Y)) {
+		if ($PieUC eq "R") { return 0; }
+		$Steps= abs($X)+0.5;
+		}
+	if ($PieUC eq "K" && $Steps<2) { goto FINAL; }
+
+
+	#REM: It's a pawn...
+	if ($PieUC eq "P") {
+		if ($Steps>2) { return 0; }
+		my @Moves= ('0,+1', '0,+2', '+1,+1', '-1,+1');
+		if ($Piece eq "p") { @Moves= ('0,-1', '0,-2', '-1,-1', '+1,-1'); }
+		my $Step1= &ToCoords($From, $Moves[0]);
+		my $Step2= &ToCoords($From, $Moves[1]);
+		my $CaptR= &ToCoords($From, $Moves[2]);
+		my $CaptL= &ToCoords($From, $Moves[3]);
+
+		if ($Steps==1 && $Step1 eq $To && $BOARD{$Step1} eq "") { goto FINAL; }
+		if ($Steps==2) {
+			if ($Piece eq "P" && $From!~ /2/) { return 0; }
+			if ($Piece eq "p" && $From!~ /7/) { return 0; }
+			if ($BOARD{$Step1} ne "" || $BOARD{$Step2} ne "") { return 0; }
+			goto FINAL;
+			}
+		if ($Steps==1.5) {
+			if ($BOARD{FLAG}{passant} eq $To) { goto FINAL; }
+			if (&IsFoe($Piece, $To)!=1) { return 0; }
+			if ($CaptR eq $To || $CaptR eq $BOARD{FLAG}{passant}) { goto FINAL; }
+			if ($CaptL eq $To || $CaptL eq $BOARD{FLAG}{passant}) { goto FINAL; }
+			}
+		return 0;
+		}
+
+	if ($Jmp==1) { goto FINAL; }
+
+	my $Sx= $X<=>0;
+	my $Sy= $Y<=>0;
+	foreach my $Step (1..$Steps-1) {
+		$Fx+= $Sx;
+		$Fy+= $Sy;
+		$Fx=~ tr/12345678/abcdefgh/;
+		my $Curr= $Fx.$Fy;
+		if ($BOARD{$Curr} ne "") { return 0; }
+		$Fx=~ tr/abcdefgh/12345678/;
+		}
+
+
+	#REM: Legal Move, finally test for check state.
+	FINAL: #REM: Dijkstra would hate this...
+	my $King= &WhatColor($Piece) eq "w" ? "K" : "k";
+	my %Save= %BOARD;
+	$BOARD{$To}= delete $BOARD{$From};
+	if (uc($Piece) eq "P" && $To eq $BOARD{FLAG}{passant}) {
+		delete %BOARD{&Enpass()};
+		}
+	
+	my $Check= &IsCheck($King);
+	%BOARD= %Save;
+	if ($Check==1) { return 0; }
+
+	return 1;
+	}
+
+
+
+sub IsCheck {
+	my ($King)= @_;
+	my ($Origin)= &WhereIs($King);
+	my $Color= &WhatColor($King);
+	my $Enemy= $Color eq "w" ? "b" : "w";
+
+	my @Direc= ("0,+1", "+1,+1", "+1,0", "+1,-1", "0,-1", "-1,-1", "-1,0", "-1,+1");
+	my @Knight= ("+1,+2", "+2,+1", "+2,-1", "+1,-2", "-1,-2", "-2,-1", "-2,+1", "-1,+2");
+
+
+
+	foreach my $J (0..7) {
+		my $Pos= $Origin;
+	
+		#REM: Try knight...
+		my $Try= &ToCoords($Origin,$Knight[$J]);
+		if (uc($BOARD{$Try}) eq "N" && &WhatColor($BOARD{$Try}) eq $Enemy) { return 1;}
+
+		foreach my $K (1..7) {
+			$Pos= &ToCoords($Pos,$Direc[$J]);
+			if ($Pos eq "") { last; }
+			if ($BOARD{$Pos} eq "") { next; }
+			my $Wc= &WhatColor($BOARD{$Pos});
+			if ($Wc eq $Color ) { last; }
+			if ($Wc eq $Enemy ) {
+				if ($K==1 && $BOARD{$Pos}=~ /K/i) { return 1;}
+				if (($J % 2)==0 && $BOARD{$Pos}=~ /[QR]/i) { return 1; }
+				if (($J % 2)==1 && $BOARD{$Pos}=~ /[QB]/i) { return 1; }
+				if ($K==1 && $BOARD{$Pos}=~ /P/i) {
+					if ($Color eq "w" && ( $J==1 || $J==7)) { return 1; }
+					if ($Color eq "b" && ( $J==3 || $J==5)) { return 1; }
+					}
+				last;
+				}
+			}
+		}
 	return 0;
 	}
 
@@ -564,7 +807,7 @@ sub Pattern {
 
 			my $Jmp= $Chr eq "j" ? 1 : 0;
 			foreach my $Fro (@From) {
-				if (&CanMove($Fro, $Sqr, 1, $Jmp)) { $Flag++; } 
+				if (&CanMove2($Fro, $Sqr, $Jmp)) { $Flag++; } 
 				}
 			if ($Flag==0) { return; }
 			}

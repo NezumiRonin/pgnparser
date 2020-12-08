@@ -24,20 +24,21 @@ Just reads and silently plays the games, good for testing PGN file and benchmark
 Searchs a pattern in the game position. Upper/Lower case color applies. Think "short-circuit" evaluation, faster and/or lesser common positions go first for speed. In Windows, search pattern must go between double quotes.
 
 
-* **w**	Evaluate only *w*hite or *b*lack active move, before the actual move. Must be first.
-* **Qd1** Queen in 'd1'
-* **Qma4** Queen can *m*ove/capture to 'a4', valid move with free path.
-* **Qxd8** Queen can *x*capture to 'd8', destination square must be with enemy piece.
-* **Qjh5** Queen can *j*ump to 'h5', ignore other pieces in path.
+* **w**	Evaluate only *w*hite or *b*lack active move, before the actual move. Must go first.
+* **Qd1** White queen in 'd1'
+* **Qma4** White queen can *m*ove/capture to 'a4', valid move with free path.
+* **Qxd8** White queen can *x*capture to 'd8', destination square must be with enemy piece.
+* **Qjh5** White queen can *j*ump to 'h5', ignore other pieces in path.
 * **.a8**  Any piece on 'a8' (To be done)
 * **!h8**  No piece on 'h8' (To be done)
+* **K[Q,+1,+1]** White king has black queen one square northeast. (To de done?)
 
 Example for 'King Usurper', white king on black throne:
 ```shell
 ./pgnparser.pl search file.pgn "w Ke8"
 ```
 
-Example for 'Greek gift sacrifice', white turn:
+Example for 'Greek Gift Sacrifice', white turn:
 ```shell
 ./pgnparser.pl search file.pgn "w kg8 rf8 Bxh7 Nmg5 Qjh5"
 ```
