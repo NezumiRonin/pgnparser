@@ -2,9 +2,13 @@
 A simple PGN Parser with tools. **MADE WITH PERL!**
 ![ScreenShot](https://raw.githubusercontent.com/NezumiRonin/pgnparser/main/screenshot.png)
 
+
+
 ## OBJECTIVE
 **PGN Parser** is a simple PGN parser made with Perl.
 It contains a set of tools to process the games in a PGN file.
+
+
 
 ## INSTALL
 * Just copy the perl script to your Linux computer.
@@ -12,10 +16,13 @@ It contains a set of tools to process the games in a PGN file.
 * If you insist in using Windows, well... you can install [Strawberry Perl](http://strawberryperl.com/).
 	
 
+
 ## USAGE
 ```shell
 ./pgnparser.pl COMMAND file [options]
 ```
+
+
 
 ### COMMANDS
 #### justplay
@@ -44,6 +51,7 @@ Example for 'Greek Gift Sacrifice', white turn:
 ```
 
 
+
 ## TO DO
 * Convert game to FEN.
 * Convert game to images.
@@ -54,9 +62,11 @@ Example for 'Greek Gift Sacrifice', white turn:
 * Patterns with OR operator.
 
 
+
 ## NOTES
 * Made in a week of coding sprint, around 40 hours (because pandemic).
 * Nov 28, 2020: ./pgnparser.pl justplay smyslov_2627.pgn -> 2627 games processed in 75s (35.0 gps)
 * Nov 29, 2020: ./pgnparser.pl justplay smyslov_2627.pgn -> 2627 games processed in 68s (38.6 gps)
+* Dec 07, 2020: ./pgnparser.pl justplay smyslov_2627.pgn -> 2627 games processed in 12s (218.9 gps)
 
 
